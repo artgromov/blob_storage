@@ -1,16 +1,10 @@
 from unittest import TestCase
 import os
-from random import randrange, choice
-import string
 
 from blob.backends.key_value import DictKVStorage
 from blob.backends.storage import FileStorage
 from blob.exceptions import StorageBackendError
-
-
-def randbytes(length):
-    source_data = string.ascii_letters + string.digits + string.punctuation + string.whitespace
-    return ''.join(choice(source_data) for i in range(length)).encode('utf-8')
+from test.rand import rand_bytes, rand_range
 
 
 class TestFileStorage(TestCase):
@@ -40,6 +34,23 @@ class TestFileStorage(TestCase):
                 expected = bytes('0', encoding='utf-8') * self.block_size * self.blob_size
                 self.assertEqual(test_data, expected)
 
+    def test_get_data(self):
+        test_blob = 0
+        test_block = 3
+        test_address = test_blob * self.blob_size + test_block
+        test_data = bytes('abcd', encoding='utf-8')
+        test_data_len = len(test_data)
+        test_file = os.path.join(self.path, 'blob_' + str(test_blob).rjust(5, '0'))
+        raw_blob = test_data.zfill(self.block_size * (test_block + 1)) + bytes(0).zfill(self.block_size * (self.blob_size - test_block - 1))
+
+        with open(test_file, 'wb') as file:
+            file.write(raw_blob)
+
+        self.storage.blocks_metadata[test_address] = test_data_len
+        got_data = self.storage.get_data(test_address)
+
+        self.assertEqual(got_data, test_data)
+
     def test_put_data(self):
         test_address = 3
         test_blob, test_block = self.storage.get_physical_address(test_address)
@@ -58,26 +69,21 @@ class TestFileStorage(TestCase):
                 got_data = file.read(self.block_size)
             self.assertEqual(got_data, expected)
 
-    def test_get_data(self):
-        test_blob = 0
-        test_block = 3
-        test_address = test_blob * self.blob_size + test_block
-        test_data = bytes('abcd', encoding='utf-8')
-        test_data_len = len(test_data)
-        test_file = os.path.join(self.path, 'blob_' + str(test_blob).rjust(5, '0'))
-        raw_blob = test_data.zfill(self.block_size * (test_block + 1)) + bytes(0).zfill(self.block_size * (self.blob_size - test_block - 1))
+    def test_del_data(self):
+        address = 10
+        length = 10
+        self.storage.blocks_metadata[address] = length
+        with self.subTest('check deletion'):
+            self.storage.del_data(address)
+            self.assertTrue(address not in self.storage.blocks_metadata)
 
-        with open(test_file, 'wb') as file:
-            file.write(raw_blob)
-
-        self.storage.blocks_metadata[test_address] = test_data_len
-        got_data = self.storage.get_data(test_address)
-
-        self.assertEqual(got_data, test_data)
+        with self.subTest('check raise with non existend address'):
+            with self.assertRaises(StorageBackendError):
+                self.storage.del_data(address)
 
     def test_put_get_data(self):
         num_of_tests = 20
-        addr_block = [(randrange(0, 128), randbytes(self.block_size)) for i in range(num_of_tests)]
+        addr_block = [(rand_range(128), rand_bytes(self.block_size)) for i in range(num_of_tests)]
         for address, block in addr_block:
             with self.subTest('random test: address={}, block={}'.format(address, block)):
                 self.storage.put_data(address, block)

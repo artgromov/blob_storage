@@ -11,6 +11,9 @@ class Storage:
     def put_data(self, address: int, block_data: bytes):
         pass
 
+    def del_data(self, address: int):
+        pass
+
     def get_free_address(self):
         pass
 
@@ -76,6 +79,15 @@ class FileStorage(Storage):
             os.remove(src_file_name)
 
         self.blocks_metadata[address] = data_len
+
+    def del_data(self, address: int):
+        if address < 0:
+            raise StorageBackendError('address should be greater or equal to 0')
+
+        try:
+            del self.blocks_metadata[address]
+        except KeyError:
+            raise StorageBackendError('metadata for block not found')
 
     def get_physical_address(self, address):
         if address < 0:
