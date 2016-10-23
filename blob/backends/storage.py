@@ -101,6 +101,7 @@ class FileStorage(Storage):
             file_name = self.get_file_name(blob)
             with open(file_name, 'wb') as file:
                 file.write(bytes('0', encoding='utf-8') * self.block_size * self.blob_size)
+            self.blobs[blob] = file_name
 
     def get_file_name(self, blob):
         file_name = 'blob_' + str(blob).rjust(5, '0')  # 5 as an example
