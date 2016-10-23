@@ -1,6 +1,6 @@
 import os
 
-from blob.backends.kv_storage import KVStorage
+from blob.backends.key_value import KVStorage
 from blob.exceptions import StorageBackendError
 
 
@@ -31,20 +31,26 @@ class FileStorage(Storage):
         self.path = os.path.abspath(path)
 
         self.blobs = kv_storage()
-        self.meta_len = kv_storage()
+        self.blocks_metadata = kv_storage()
 
     def get_data(self, address: int):
-        if address not in self.meta_len:
-            raise StorageBackendError('block is empty')
+        if address < 0:
+            raise StorageBackendError('address should be greater or equal to 0')
+
+        if address not in self.blocks_metadata:
+            raise StorageBackendError('metadata for block not found')
 
         blob, block = self.get_physical_address(address)
         with open(self.get_file_name(blob), 'rb') as file:
             file.seek(block * self.block_size)
             raw_data = file.read(self.block_size)
-            block_data = raw_data[self.block_size - self.meta_len[address]:]
+            block_data = raw_data[self.block_size - self.blocks_metadata[address]:]
             return block_data
 
     def put_data(self, address: int, block_data: bytes):
+        if address < 0:
+            raise StorageBackendError('address should be greater or equal to 0')
+
         blob, block = self.get_physical_address(address)
         if blob not in self.blobs:
             self.init_blob(blob)
@@ -69,7 +75,7 @@ class FileStorage(Storage):
                     current_block += 1
             os.remove(src_file_name)
 
-        self.meta_len[address] = data_len
+        self.blocks_metadata[address] = data_len
 
     def get_physical_address(self, address):
         if address < 0:
@@ -91,6 +97,6 @@ class FileStorage(Storage):
     def get_free_address(self):
         address = 0
         while True:
-            if address not in self.meta_len:
+            if address not in self.blocks_metadata:
                 return address
             address += 1

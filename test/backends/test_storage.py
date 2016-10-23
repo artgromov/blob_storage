@@ -3,7 +3,7 @@ import os
 from random import randrange, choice
 import string
 
-from blob.backends.kv_storage import DictKVStorage
+from blob.backends.key_value import DictKVStorage
 from blob.backends.storage import FileStorage
 from blob.exceptions import StorageBackendError
 
@@ -70,7 +70,7 @@ class TestFileStorage(TestCase):
         with open(test_file, 'wb') as file:
             file.write(raw_blob)
 
-        self.storage.meta_len[test_address] = test_data_len
+        self.storage.blocks_metadata[test_address] = test_data_len
         got_data = self.storage.get_data(test_address)
 
         self.assertEqual(got_data, test_data)

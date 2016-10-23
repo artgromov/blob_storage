@@ -1,6 +1,7 @@
 from blob.controller import Controller
+from blob.backends.key_value import DictKVStorage
 from blob.backends.storage import FileStorage
-from blob.fingerprint import *
+from blob.hashers import *
 from blob.exceptions import *
 
 
@@ -12,8 +13,8 @@ def init(block_size: int, blob_size: int):
     global controller
     if controller is None:
         try:
-            storage = FileStorage(block_size, blob_size, storage_path)
-            controller = Controller(storage)
+            storage = FileStorage(block_size, blob_size, storage_path, DictKVStorage)
+            controller = Controller(storage, DictKVStorage)
         except Exception:
             return 1
         else:
