@@ -26,7 +26,7 @@ class DedupeProxy(Storage):
         if duplicate_address is not None:
             if address in self.by_address:
                 storage_address = self.by_address[address]
-                if self.by_address.count_links(storage_address) == 1:
+                if self.by_address.count_links(storage_address) == 1 and storage_address != duplicate_address:
                     self.storage.del_data(storage_address)
             self.by_address[address] = duplicate_address
 
